@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useState } from "react"
-import { Contact, GraduationCap, Home, LogOut, Menu, Users } from "lucide-react"
+import { BookOpen, Contact, GraduationCap, Home, LogOut, Menu, Users } from "lucide-react"
 import { ADMIN_NAV_ITEMS } from "@/lib/admin-nav"
 import { cn } from "@/lib/utils"
 import {
@@ -18,6 +18,7 @@ const SITE_NAV_ITEMS = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/profesionales", label: "Profesionales", icon: Users },
   { href: "/conversatorios", label: "Educación", icon: GraduationCap },
+  { href: "/cursos", label: "Cursos", icon: BookOpen },
   { href: "/contacto", label: "Contacto", icon: Contact },
 ]
 

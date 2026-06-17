@@ -9,6 +9,7 @@ export interface Usuario {
   rol_id: number
   foto_url?: string
   telefono?: string
+  academic_name?: string
   cedula?: string // Added based on DB schema
   estado?: string
 }
@@ -18,6 +19,7 @@ export interface RegisterData {
   correo: string
   contrasena: string
   rol_id?: number
+  academic_name?: string
   telefono?: string
   cedula?: string
   foto_url?: string
@@ -37,6 +39,8 @@ export interface PerfilProfesionalData {
   telefono?: string
   cedula?: string // Added
   foto_url?: string
+  banner_url?: string
+  modalidad?: string
   latitud?: number
   longitud?: number
   calle_principal?: string
@@ -112,6 +116,104 @@ export interface Certificado {
   ponencia_id: number
   url_pdf: string
   fecha_emision: string
+}
+
+export interface CertificateRequestPayload {
+  scope: "conversatorio"
+  ponencia_id: number
+  payment_method: "gratuito" | "payphone" | "transferencia"
+  costo?: number
+  comprobante_pago_url?: string | null
+  pago_id?: number | null
+  metadata?: Record<string, any> | null
+}
+
+export interface CertificateValidationResult {
+  id: number
+  codigo_verificacion: string
+  scope: "conversatorio"
+  status: string
+  payment_method: string
+  costo: number
+  fecha_solicitud: string | null
+  fecha_emision: string | null
+  certificado_url: string | null
+  usuario: { id: number; nombre: string; correo: string } | null
+  conversatorio: {
+    id: number
+    titulo: string
+    slug?: string | null
+    fecha_inicio?: string | null
+    fecha_fin?: string | null
+  } | null
+  ponencia: {
+    id: number
+    tema_charla?: string | null
+    nombre_ponente?: string | null
+    slug?: string | null
+    hora_inicio?: string | null
+    hora_fin?: string | null
+  } | null
+}
+
+export interface CertificateRecord {
+  id: number
+  usuario_id: number | null
+  ponencia_id: number
+  ponencia_ponente_id: number | null
+  pago_id: number | null
+  scope: "conversatorio"
+  status: string
+  payment_method: "gratuito" | "payphone" | "transferencia"
+  costo: number
+  comprobante_pago_url: string | null
+  codigo_verificacion: string
+  url_pdf: string | null
+  fecha_solicitud: string
+  fecha_emision: string | null
+  metadata?: Record<string, any> | null
+  usuario?: { id: number; nombre: string; correo: string } | null
+  ponencia?: { id: number; titulo: string; slug?: string | null; fecha_inicio?: string | null; fecha_fin?: string | null } | null
+  ponencia_ponente?: { id: number; tema_charla?: string | null; nombre_ponente?: string | null; slug?: string | null; hora_inicio?: string | null; hora_fin?: string | null } | null
+  pago?: { id: number; monto: number | string; metodo: string; referencia?: string | null; estado_id: number; gateway?: string | null; gateway_reference?: string | null } | null
+}
+
+export interface PayPhoneCertificatePreparePayload {
+  scope: "conversatorio"
+  ponencia_id: number
+  clientTransactionId?: string
+  currency?: string
+  reference?: string
+  responseUrl?: string
+  cancellationUrl?: string
+  costo?: number
+}
+
+export interface PayPhoneCertificatePrepareData {
+  reused: boolean
+  certificado: CertificateRecord
+  checkout: PayPhonePriorityCheckout
+}
+
+export interface PayPhoneCertificateConfirmPayload {
+  clientTransactionId: string
+  id?: number | string
+  paymentId?: number | string
+  payphonePaymentId?: number | string
+}
+
+export interface PayPhoneCertificateConfirmData {
+  approved: boolean
+  reviewRequired: boolean
+  manualReviewMessage: string | null
+  certificado: CertificateRecord
+  confirmation: {
+    id: number | null
+    transactionId: number | null
+    clientTransactionId: string | null
+    statusCode: number | null
+    normalizedStatus: string | null
+  }
 }
 
 export interface ChatSesion {
@@ -254,6 +356,8 @@ export interface PayPhonePriorityProfileDraft {
   telefono?: string
   cedula?: string
   foto_url?: string
+  banner_url?: string
+  modalidad?: string
   latitud?: number
   longitud?: number
   lat?: number
@@ -349,6 +453,7 @@ export interface Ponencia {
   url_revista_general?: string
   foto_revista_general?: string
   resumen_formato?: string
+  config_visual?: Record<string, any> | null
   dias?: PonenciaDia[]
 }
 
@@ -361,6 +466,21 @@ export interface PonenciaDia {
   hora_inicio?: string
   hora_fin?: string
   ponentes?: PonenciaPonente[]
+}
+
+export interface PonenciaMaterialApoyo {
+  id?: number
+  ponencia_ponente_id?: number
+  tipo: "link" | "file"
+  categoria?: string | null
+  titulo?: string | null
+  descripcion?: string | null
+  url: string
+  mime_type?: string | null
+  nombre_archivo?: string | null
+  extension?: string | null
+  tamano_bytes?: number | null
+  orden?: number
 }
 
 export interface PonenciaPonente {
@@ -379,6 +499,10 @@ export interface PonenciaPonente {
   slogan?: string // NUEVO
   fondo_banner?: string // PREMIUM
   galeria_fotos?: string[] // PREMIUM
+  es_muestra_gratis?: boolean
+  hora_inicio?: string
+  hora_fin?: string
+  materiales_apoyo?: PonenciaMaterialApoyo[]
   orden: number
   usuario?: { id: number; nombre: string; foto_url?: string }
 }
@@ -471,6 +595,13 @@ function optionalAuthHeader(token?: string | null) {
 export const authApi = {
   async register(data: RegisterData): Promise<ApiResponse> {
     return fetchApi("/auth/registro", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async registerUsuario(data: RegisterData): Promise<ApiResponse> {
+    return fetchApi("/auth/registro-usuario", {
       method: "POST",
       body: JSON.stringify(data),
     });
@@ -738,19 +869,182 @@ export const auditoriaApi = {
 
 // Certificados API
 export const certificadosApi = {
-  async generar(data: { ponencia_id: number, url_pdf: string }, token: string) {
-    return fetchApi("/ponencias/certificado", {
+  async solicitar(data: CertificateRequestPayload, token: string): Promise<CertificateRecord> {
+    return fetchApi("/certificados/solicitar", {
       method: "POST",
       headers: authHeader(token),
-      body: JSON.stringify(data)
-    });
+      body: JSON.stringify(data),
+    })
   },
-  async listarMios(token: string) { return fetchApi("/certificados/mios", { headers: authHeader(token) }); },
-  async descargar(codigo: string, token: string) {
-    // This might return a redirect or file stream
-    // Since it's a GET /certificados/descargar/{codigo}, let's just use window.open or return URL if API handles it that way
-    return fetchApi(`/certificados/descargar/${codigo}`, { headers: authHeader(token) });
+
+  async preparePayPhoneCheckout(data: PayPhoneCertificatePreparePayload, token: string): Promise<PayPhoneCertificatePrepareData> {
+    return fetchApi("/certificados/payphone/prepare", {
+      method: "POST",
+      headers: authHeader(token),
+      body: JSON.stringify(data),
+    })
+  },
+
+  async confirmPayPhoneCheckout(data: PayPhoneCertificateConfirmPayload, token: string): Promise<PayPhoneCertificateConfirmData> {
+    return fetchApi("/certificados/payphone/confirm", {
+      method: "POST",
+      headers: authHeader(token),
+      body: JSON.stringify(data),
+    })
+  },
+
+  async generar(data: CertificateRequestPayload & { usuario_id: number; url_pdf?: string | null }, token: string): Promise<CertificateRecord> {
+    return fetchApi("/certificados", {
+      method: "POST",
+      headers: authHeader(token),
+      body: JSON.stringify(data),
+    })
+  },
+
+  async listar(token: string): Promise<CertificateRecord[]> {
+    return fetchApi("/certificados", { headers: authHeader(token) })
+  },
+
+  async listarMios(token: string): Promise<CertificateRecord[]> {
+    return fetchApi("/certificados/mios", { headers: authHeader(token) })
+  },
+
+  async actualizarEstado(id: number, data: { status: string; force_regenerate?: boolean; url_pdf?: string | null; pago_id?: number | null; comprobante_pago_url?: string | null }, token: string): Promise<CertificateRecord> {
+    return fetchApi(`/certificados/${id}/status`, {
+      method: "PATCH",
+      headers: authHeader(token),
+      body: JSON.stringify(data),
+    })
+  },
+
+  async eliminar(id: number, token: string): Promise<{ id: number }> {
+    return fetchApi(`/certificados/${id}`, {
+      method: "DELETE",
+      headers: authHeader(token),
+    })
+  },
+
+  async validar(id: number | string): Promise<CertificateValidationResult> {
+    return fetchApi(`/certificados/validar/${id}`)
+  },
+
+  async obtenerDescargaUrl(codigo: string, token: string): Promise<string> {
+    const res = await fetch(`${API_URL}/certificados/descargar/${codigo}`, {
+      method: "GET",
+      headers: authHeader(token),
+      redirect: "follow",
+    })
+
+    if (!res.ok) {
+      let data: any = null
+      try {
+        data = await res.json()
+      } catch {}
+      throw new Error(data?.error?.message || data?.message || data?.error || "No se pudo obtener la descarga del certificado")
+    }
+
+    return res.url
+  },
+}
+
+export interface UsuarioPortalConfiguracion {
+  usuario: {
+    id: number
+    nombre: string
+    correo: string
+    telefono?: string | null
+    foto_url?: string | null
+    academic_name?: string | null
+    academic_name_updated_at?: string | null
+    rol?: string | null
   }
+  academic_name_locked: boolean
+  academic_name_days_remaining: number
+  academic_name_next_available_at?: string | null
+  academic_name_lock_days: number
+}
+
+export interface UsuarioPortalCitaRecord {
+  id: number
+  fecha_cita: string
+  hora_cita: string
+  comentario?: string | null
+  nombres_completos?: string | null
+  estado?: string | null
+  estado_id?: number
+  fecha_creacion?: string | null
+  reagendada_veces?: number
+  cita_datetime?: string | null
+  es_proxima?: boolean
+  profesional?: {
+    id: number
+    nombre: string
+    academic_name?: string | null
+    display_name?: string | null
+    correo?: string | null
+    telefono?: string | null
+    foto_url?: string | null
+    perfil_slug?: string | null
+    perfil_id?: number | null
+    verificado?: boolean | null
+  } | null
+}
+
+export interface UsuarioPortalCursoRecord {
+  id: number
+  fecha_inscripcion?: string | null
+  estado_validacion?: string | null
+  estado_canonico?: string | null
+  curso?: {
+    id: number
+    titulo: string
+    slug?: string | null
+    tipo?: string | null
+    estado?: string | null
+    fecha_inicio?: string | null
+    fecha_fin?: string | null
+    hora_inicio?: string | null
+    hora_fin?: string | null
+    precio?: number | null
+    imagen_banner?: string | null
+  } | null
+  asistencia?: {
+    id: number
+    metodo_verificacion?: string | null
+    fecha_asistencia?: string | null
+  } | null
+  certificado?: {
+    id: number
+    status?: string | null
+    payment_method?: string | null
+    url_pdf?: string | null
+    codigo_verificacion?: string | null
+    fecha_emision?: string | null
+  } | null
+}
+
+export const usuarioPortalApi = {
+  async obtenerConfiguracion(token: string): Promise<UsuarioPortalConfiguracion> {
+    return fetchApi('/usuario/configuracion', { headers: authHeader(token) })
+  },
+
+  async actualizarConfiguracion(data: { nombre?: string; telefono?: string; foto_url?: string }, token: string): Promise<UsuarioPortalConfiguracion> {
+    return fetchApi('/usuario/configuracion', { method: 'PUT', headers: authHeader(token), body: JSON.stringify(data) })
+  },
+
+  async actualizarAcademicName(academic_name: string, token: string): Promise<UsuarioPortalConfiguracion> {
+    return fetchApi('/usuario/configuracion/academic-name', { method: 'PUT', headers: authHeader(token), body: JSON.stringify({ academic_name }) })
+  },
+
+  async listarCitas(token: string): Promise<UsuarioPortalCitaRecord[]> {
+    const data = await fetchApi('/usuario/citas', { headers: authHeader(token) })
+    return Array.isArray(data?.items) ? data.items : []
+  },
+
+  async listarCursos(token: string): Promise<UsuarioPortalCursoRecord[]> {
+    const data = await fetchApi('/usuario/cursos', { headers: authHeader(token) })
+    return Array.isArray(data?.items) ? data.items : []
+  },
 }
 
 // Chat API
@@ -803,65 +1097,60 @@ export const planesApi = {
   },
 }
 
+const buildPonenciasPath = (suffix = "", routePrefix = "/ponencias") => `${routePrefix}${suffix}`
+
 // Ponencias API
 export const ponenciasApi = {
-  async crear(data: Partial<Ponencia>, token: string) {
-    return fetchApi("/ponencias", { method: "POST", headers: authHeader(token), body: JSON.stringify(data) });
+  async crear(data: Partial<Ponencia>, token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath("", routePrefix), { method: "POST", headers: authHeader(token), body: JSON.stringify(data) });
   },
-  async publicar(id: number, token: string) {
-    return fetchApi(`/ponencias/${id}/publicar`, { method: "PUT", headers: authHeader(token) });
+  async publicar(id: number, token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath(`/${id}/publicar`, routePrefix), { method: "PUT", headers: authHeader(token) });
   },
-  async inscribir(data: { ponencia_id: number, cedula: string, correo: string, celular?: string }) {
-    return fetchApi("/ponencias/inscripcion", { method: "POST", body: JSON.stringify(data) });
+  async inscribir(data: { ponencia_id: number, cedula: string, correo: string, celular?: string }, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath('/inscripcion', routePrefix), { method: "POST", body: JSON.stringify(data) });
   },
-  async registrarAsistencia(data: { inscripcion_id: number, metodo_verificacion: string }, token: string) {
-    return fetchApi("/ponencias/asistencia", { // URL might be /ponencias/{id}/asistencia or just /ponencias/asistencia check swagger. 
-      // Swagger said "/ponencias/{id}/asistencia" POST. 
-      // But usually ID is in path. Wait, swagger says: Path /ponencias/{id}/asistencia.
-      // Let's assume the body needs details inside? "required: inscripcion_id"
-      // Wait, if path has {id} (ponencia_id), why does body need inscripcion_id?
-      // Let's stick to the swagger path: /ponencias/{id}/asistencia
-      // Actually I'll implement a flexible method.
+  async registrarAsistencia(data: { inscripcion_id: number, metodo_verificacion: string }, token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath('/asistencia', routePrefix), {
       method: "POST",
       headers: authHeader(token),
       body: JSON.stringify(data)
     });
   },
-  // Fix for the above: explicit method for the path parameter
-  async registrarAsistenciaEnPonencia(ponenciaId: number, data: { inscripcion_id: number, metodo_verificacion: string }, token: string) {
-    return fetchApi(`/ponencias/${ponenciaId}/asistencia`, {
+  async registrarAsistenciaEnPonencia(ponenciaId: number, data: { inscripcion_id: number, metodo_verificacion: string }, token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath(`/${ponenciaId}/asistencia`, routePrefix), {
       method: "POST",
       headers: authHeader(token),
       body: JSON.stringify(data)
     });
   },
-  async listar(token?: string) {
+  async listar(token?: string, routePrefix = "/ponencias") {
     const headers = token ? authHeader(token) : {};
-    return fetchApi("/ponencias", { headers });
+    return fetchApi(buildPonenciasPath("", routePrefix), { headers });
   },
-  async listarTodas(token: string) {
-    return fetchApi("/ponencias/todas", { headers: authHeader(token) });
+  async listarTodas(token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath('/todas', routePrefix), { headers: authHeader(token) });
   },
-  async obtener(slug: string) {
-    return fetchApi(`/ponencias/${slug}`);
+  async obtener(slug: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath(`/${slug}`, routePrefix));
   },
-  async obtenerPorId(id: number, token: string) {
-    return fetchApi(`/ponencias/id/${id}`, { headers: authHeader(token) });
+  async obtenerPorId(id: number, token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath(`/id/${id}`, routePrefix), { headers: authHeader(token) });
   },
-  async listarInscritos(id: number, token: string) {
-    return fetchApi(`/ponencias/${id}/inscritos`, { headers: authHeader(token) });
+  async listarInscritos(id: number, token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath(`/${id}/inscritos`, routePrefix), { headers: authHeader(token) });
   },
-  async estadoCupos(id: number) {
-    return fetchApi(`/ponencias/${id}/estado-cupos`);
+  async estadoCupos(id: number, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath(`/${id}/estado-cupos`, routePrefix));
   },
-  async generarCertificadosMasivo(id: number, token: string) {
-    return fetchApi(`/ponencias/${id}/generar-certificados-masivo`, {
+  async generarCertificadosMasivo(id: number, token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath(`/${id}/generar-certificados-masivo`, routePrefix), {
       method: "POST",
       headers: authHeader(token),
     });
   },
-  async actualizar(id: number, data: Partial<Ponencia>, token: string) {
-    return fetchApi(`/ponencias/${id}`, {
+  async actualizar(id: number, data: Partial<Ponencia>, token: string, routePrefix = "/ponencias") {
+    return fetchApi(buildPonenciasPath(`/${id}`, routePrefix), {
       method: "PUT",
       headers: authHeader(token),
       body: JSON.stringify(data)
@@ -1106,6 +1395,26 @@ export const adminApi = {
   },
 
   // Profiles Management
+  async getProfilesPage(token: string, params: { page?: number; limit?: number; status?: string } = {}) {
+    const searchParams = new URLSearchParams()
+    if (params.page) searchParams.set("page", String(params.page))
+    if (params.limit) searchParams.set("limit", String(params.limit))
+    if (params.status && params.status !== "todos") searchParams.set("status", params.status)
+
+    const query = searchParams.toString()
+    const raw = await fetchApi(`/profesionales${query ? `?${query}` : ""}`, { headers: authHeader(token) })
+    return {
+      items: this.normalizeProfilesResponse(raw),
+      meta: raw?.meta || {
+        totalItems: 0,
+        totalPages: 1,
+        currentPage: params.page || 1,
+        itemsPerPage: params.limit || 12,
+        statusCounts: { todos: 0, pendiente: 0, aprobado: 0, rechazado: 0 },
+      },
+    }
+  },
+
   async getAllProfiles(token: string) {
     const raw = await fetchApi("/profesionales", { headers: authHeader(token) });
     return this.normalizeProfilesResponse(raw);
@@ -1148,15 +1457,15 @@ export const adminApi = {
     return updateRes;
   },
 
-  async deletePonencia(id: number, token: string) {
-    return fetchApi(`/ponencias/${id}`, {
+  async deletePonencia(id: number, token: string, routePrefix = "/ponencias") {
+    return fetchApi(`${routePrefix}/${id}`, {
       method: "DELETE",
       headers: authHeader(token)
     });
   },
 
-  async publishPonencia(id: number, token: string) {
-    return ponenciasApi.publicar(id, token);
+  async publishPonencia(id: number, token: string, routePrefix = "/ponencias") {
+    return ponenciasApi.publicar(id, token, routePrefix);
   },
 
   // Planes Management (Admin)

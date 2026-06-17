@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const name = professional?.usuario?.nombre || "Profesional"
     const profession = professional?.profesion?.nombre || "Profesional"
     const specialty = professional?.especialidad?.nombre
-    const imageUrl = formatUrl(professional?.usuario?.foto_url) || "/logo-black.png"
+    const imageUrl = formatUrl(professional?.banner_url) || formatUrl(professional?.usuario?.foto_url) || "/logo-black.png"
     const ogImage = toAbsoluteUrl(imageUrl)
     const profileUrl = `${SITE_URL}/perfil/${id}`
 

@@ -1,13 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Check, CreditCard, ArrowRight, Clock, Zap, Users, Shield } from "lucide-react"
+import { Check, CreditCard, ArrowRight, Clock, Zap, Users, Shield, UserRound, BookOpen } from "lucide-react"
 import Link from "next/link"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 
 export default function PreinscripcionPage() {
-  const [selectedPlan, setSelectedPlan] = useState<"free" | "paid" | null>(null)
+  const [selectedPlan, setSelectedPlan] = useState<"free" | "paid" | "usuario" | null>(null)
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -27,7 +27,70 @@ export default function PreinscripcionPage() {
           </div>
 
           {/* Pricing Cards */}
-          <div className="grid md:grid-cols-2 gap-8 mb-16">
+          <div className="grid gap-8 mb-16 lg:grid-cols-3">
+            {/* Usuario Portal */}
+            <div
+              className={`relative group bg-white border-2 rounded-2xl p-8 transition-all duration-500 cursor-pointer hover:scale-105 shadow-lg ${
+                selectedPlan === "usuario" ? "border-slate-900 shadow-slate-200" : "border-slate-300 hover:border-slate-400"
+              }`}
+              onClick={() => setSelectedPlan("usuario")}
+            >
+              {selectedPlan === "usuario" && (
+                <div className="absolute top-4 right-4 bg-slate-900 text-white px-3 py-1 rounded-full text-xs font-bold animate-in zoom-in duration-300">
+                  Seleccionado
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-slate-100 rounded-xl">
+                  <UserRound className="text-slate-900" size={28} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900 font-display">Usuario normal</h3>
+                  <p className="text-slate-700 text-sm font-medium">Nuevo portal autenticado</p>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-5xl font-bold text-gray-900">$0</span>
+                  <span className="text-gray-600 text-lg">USD</span>
+                </div>
+                <p className="text-gray-600 text-sm">Registro gratuito para gestionar citas, cursos y certificados</p>
+              </div>
+
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-start gap-3">
+                  <Check className="text-slate-900 flex-shrink-0 mt-1" size={20} />
+                  <span className="text-gray-700">Acceso a tu dashboard personal</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="text-slate-900 flex-shrink-0 mt-1" size={20} />
+                  <span className="text-gray-700">Seguimiento de citas con profesionales</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <BookOpen className="text-slate-900 flex-shrink-0 mt-1" size={20} />
+                  <span className="text-gray-700">Cursos, certificados y configuración desde el portal</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Check className="text-slate-900 flex-shrink-0 mt-1" size={20} />
+                  <span className="text-gray-700">Entrada lista para el nuevo flujo de registro de usuario</span>
+                </li>
+              </ul>
+
+              <Link
+                href="/registro-usuario"
+                className={`w-full py-4 px-6 rounded-xl font-semibold text-center transition-all duration-300 flex items-center justify-center gap-2 font-button ${
+                  selectedPlan === "usuario"
+                    ? "bg-slate-900 text-white hover:bg-slate-800 shadow-lg"
+                    : "bg-slate-100 text-slate-900 hover:bg-slate-200"
+                }`}
+              >
+                Crear cuenta de usuario
+                <ArrowRight size={18} />
+              </Link>
+            </div>
+
             {/* Free Plan */}
             <div
               className={`relative group bg-white border-2 rounded-2xl p-8 transition-all duration-500 cursor-pointer hover:scale-105 shadow-lg ${

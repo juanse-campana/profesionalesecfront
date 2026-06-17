@@ -8,6 +8,7 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import Link from "next/link"
 import { authApi, saveToken } from "@/lib/api"
+import { getDashboardRouteForRole, parseRoleFromToken } from "@/lib/auth-session"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -36,23 +37,8 @@ export default function LoginPage() {
         saveToken(data.token)
 
         try {
-          const parts = data.token.split(".")
-          if (parts.length !== 3) {
-            console.error("Token appears invalid")
-            router.push("/dashboard")
-            return
-          }
-
-          const payload = JSON.parse(atob(parts[1]))
-          const rol = payload.rol
-
-          if (["superadmin", "moderador"].includes(rol)) {
-            router.push("/admin")
-          } else if (rol === "profesional") {
-            router.push("/dashboard/profesional")
-          } else {
-            router.push("/dashboard")
-          }
+          const { role } = parseRoleFromToken(data.token)
+          router.push(getDashboardRouteForRole(role))
         } catch (e) {
           console.error("Error decoding token:", e)
           router.push("/dashboard")

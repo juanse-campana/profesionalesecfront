@@ -25,7 +25,7 @@ export default function EditarConversatorioPage() {
         const [profs, provs, convRes] = await Promise.all([
           catalogosApi.obtenerProfesiones(),
           catalogosApi.obtenerProvincias(),
-          ponenciasApi.obtenerPorId(Number(id), token)
+          ponenciasApi.obtenerPorId(Number(id), token, "/conversatorios")
         ])
 
         setProfesiones(Array.isArray(profs) ? profs : [])
@@ -75,6 +75,11 @@ export default function EditarConversatorioPage() {
         initialData={conversatorio}
         profesiones={profesiones}
         provincias={provincias}
+        routePrefix="/conversatorios"
+        uploadFolder="conversatorios"
+        redirectPath="/admin/conversatorios"
+        resourceLabel="Conversatorio"
+        resourceLabelPlural="Conversatorios"
       />
     </div>
   )

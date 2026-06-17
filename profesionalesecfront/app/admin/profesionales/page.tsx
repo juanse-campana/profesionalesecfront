@@ -71,6 +71,10 @@ export default function AdminProfesionalesPage() {
   const { profesiones, provincias, refresh: refreshProfesionesCatalogo } = useAdminCatalogs()
 
   const [perfilesPendientes, setPerfilesPendientes] = useState<PerfilPendiente[]>([])
+  const [profilesMeta, setProfilesMeta] = useState({ totalItems: 0, totalPages: 1, currentPage: 1, itemsPerPage: 12, statusCounts: { todos: 0, pendiente: 0, aprobado: 0, rechazado: 0 } })
+  const [profilesLoading, setProfilesLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const profilesPerPage = 12
   const [processingProfiles, setProcessingProfiles] = useState<Record<number, "approving" | "rejecting" | null>>({})
   const [lastProfilesRefreshAt, setLastProfilesRefreshAt] = useState<Date | null>(null)
   const [profilesAnimationKey, setProfilesAnimationKey] = useState(0)
@@ -105,6 +109,10 @@ export default function AdminProfesionalesPage() {
   })
 
   const [filterStatus, setFilterStatus] = useState<"todos" | "pendiente" | "aprobado" | "rechazado">("todos")
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterStatus])
 
   const mapProfilesFromApi = useCallback((profiles: any[] = []) => {
     return profiles.map((p: any) => {
@@ -231,23 +239,33 @@ export default function AdminProfesionalesPage() {
     }
   }, [getProfilesSignature, mapProfilesFromApi])
 
-  const refreshProfiles = useCallback(async () => {
+  const refreshProfiles = useCallback(async (options?: { silent?: boolean }) => {
     const token = localStorage.getItem("auth_token")
     if (!token || profilesRefreshInFlightRef.current || document.visibilityState !== "visible") return
 
     profilesRefreshInFlightRef.current = true
+    if (!options?.silent) {
+      setProfilesLoading(true)
+    }
 
     try {
-      const profilesResponse = await adminApi.getAllProfiles(token)
-      const profiles = adminApi.normalizeProfilesResponse(profilesResponse)
+      const response = await adminApi.getProfilesPage(token, {
+        page: currentPage,
+        limit: profilesPerPage,
+        status: filterStatus,
+      })
       if (!mountedRef.current) return
-      applyProfilesSnapshot(profiles, true)
+      applyProfilesSnapshot(response.items, true)
+      setProfilesMeta(response.meta)
     } catch {
       // Polling silencioso
     } finally {
       profilesRefreshInFlightRef.current = false
+      if (!options?.silent && mountedRef.current) {
+        setProfilesLoading(false)
+      }
     }
-  }, [applyProfilesSnapshot])
+  }, [applyProfilesSnapshot, currentPage, filterStatus])
 
   const loadEspecialidades = useCallback(async (profesionId: string) => {
     if (!profesionId) {
@@ -281,19 +299,11 @@ export default function AdminProfesionalesPage() {
   }, [])
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token")
-    if (!token) return
-
-    adminApi.getStats(token).then((stats) => {
-      applyProfilesSnapshot(adminApi.normalizeProfilesResponse(stats.profesionales))
-    }).catch(() => {})
-  }, [applyProfilesSnapshot])
-
-  useEffect(() => {
+    mountedRef.current = true
     refreshProfiles()
 
     const intervalId = window.setInterval(() => {
-      refreshProfiles()
+      refreshProfiles({ silent: true })
     }, 7000)
 
     const refetchOnFocus = () => {
@@ -313,26 +323,7 @@ export default function AdminProfesionalesPage() {
     }
   }, [refreshProfiles])
 
-  const filteredProfiles = useMemo(() => {
-    let result = [...perfilesPendientes]
-
-    if (filterStatus !== "todos") {
-      result = result.filter((p) => p.estado === filterStatus)
-    }
-
-    result.sort((a, b) => {
-      const dateA = new Date(a.fecha_registro).getTime()
-      const dateB = new Date(b.fecha_registro).getTime()
-
-      if (!isNaN(dateA) && !isNaN(dateB) && dateA !== dateB) {
-        return dateB - dateA
-      }
-
-      return b.id - a.id
-    })
-
-    return result
-  }, [perfilesPendientes, filterStatus])
+  const filteredProfiles = useMemo(() => perfilesPendientes, [perfilesPendientes])
 
   const getEstadoBadge = (estado: string) => {
     const variants: Record<string, { color: string; text: string }> = {
@@ -689,9 +680,7 @@ export default function AdminProfesionalesPage() {
           >
             {status.charAt(0).toUpperCase() + status.slice(1)}
             <span className="ml-2 text-xs opacity-70">
-              ({status === "todos"
-                ? perfilesPendientes.length
-                : perfilesPendientes.filter(p => p.estado === status).length})
+              ({profilesMeta.statusCounts[status]})
             </span>
           </button>
         ))}
@@ -701,7 +690,14 @@ export default function AdminProfesionalesPage() {
         key={profilesAnimationKey}
         className="grid gap-4 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-700"
       >
-        {filteredProfiles.length === 0 ? (
+        {profilesLoading ? (
+          <Card className="bg-white border-gray-200">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-10 w-10 animate-spin text-emerald-600 mb-4" />
+              <p className="text-sm text-gray-500">Cargando profesionales...</p>
+            </CardContent>
+          </Card>
+        ) : filteredProfiles.length === 0 ? (
           <Card className="bg-white border-gray-200">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <AlertCircle className="h-12 w-12 text-gray-500 mb-4" />
@@ -792,6 +788,30 @@ export default function AdminProfesionalesPage() {
           ))
         )}
       </div>
+
+      {profilesMeta.totalPages > 1 ? (
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-500">
+            Página {profilesMeta.currentPage} de {profilesMeta.totalPages} · {profilesMeta.totalItems} profesionales
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={profilesLoading || currentPage <= 1}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              disabled={profilesLoading || currentPage >= profilesMeta.totalPages}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, profilesMeta.totalPages))}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <Dialog open={isProfileDetailsOpen} onOpenChange={setIsProfileDetailsOpen}>
         <DialogContent className="bg-white border-gray-200 w-[95vw] sm:w-[92vw] md:w-[88vw] lg:w-[80vw] lg:max-w-5xl max-h-[90vh] overflow-x-hidden overflow-y-auto p-4 sm:p-6">

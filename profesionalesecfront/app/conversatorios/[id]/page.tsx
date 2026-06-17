@@ -32,7 +32,7 @@ export default function ConversatorioDetallePage() {
     useEffect(() => {
         const load = async () => {
             try {
-                const found = await ponenciasApi.obtener(slug)
+                const found = await ponenciasApi.obtener(slug, "/conversatorios")
                 if (found) {
                     setPonencia(found)
                 } else {
@@ -50,11 +50,11 @@ export default function ConversatorioDetallePage() {
     // Dynamic Section Renderer
     const renderSection = (sectionName: string) => {
         switch (sectionName) {
-            case "hero": return <EventHero key="hero" ponencia={ponencia} loading={loading} error={error} />
+            case "hero": return <EventHero key="hero" ponencia={ponencia} loading={loading} error={error} backHref="/conversatorios" resourceLabel="Conversatorio" />
             case "stats": return <EventStats key="stats" ponencia={ponencia} loading={loading} />
             case "justification": return <EventJustification key="justification" ponencia={ponencia} loading={loading} />
             case "magazine": return <MagazineBanner key="magazine" ponencia={ponencia} loading={loading} />
-            case "itinerary": return <EventItinerary key="itinerary" ponencia={ponencia} loading={loading} />
+            case "itinerary": return <EventItinerary key="itinerary" ponencia={ponencia} loading={loading} resourceLabel="CONVERSATORIO" speakerBasePath="/conversatorios" />
             case "pedagogy": return <EventPedagogy key="pedagogy" ponencia={ponencia} loading={loading} />
             case "multimedia": return <EventMultimedia key="multimedia" ponencia={ponencia} loading={loading} />
             case "registration": return <EventRegistration key="registration" ponencia={ponencia} loading={loading} />

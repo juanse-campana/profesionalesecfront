@@ -34,10 +34,6 @@ El alcance cubre los siete (7) módulos del dashboard profesional accesibles des
 | Rol | Descripción | Acceso |
 |-----|-------------|--------|
 | **Profesional** | Usuario registrado con `rol_id = 2`. Dueño del perfil profesional. | Dashboard completo de su perfil |
-| **Cliente / Público** | Usuario no autenticado o cliente registrado (`rol_id ≠ 2`). | Agendamiento público de citas, visualización de perfil público |
-| **Administrador** | Usuario con privilegios administrativos. | Moderación de artículos, gestión de cuentas bancarias, aprobación de pagos |
-
----
 
 ## 2. Arquitectura General del Dashboard
 
@@ -61,7 +57,6 @@ Dashboard Layout
 - **Ruteo:** GoRouter (navegación declarativa)
 - **Autenticación:** JWT (token en `flutter_secure_storage` bajo la clave `auth_token`)
 - **Subida de archivos:** Cloudinary (`dw4p8pdcz`, preset `profesionales`)
-- **Mapas:** Widget `LocationMap` con `google_maps_flutter` o `flutter_map` + `geolocator`
 
 ### 2.2 Modelo de Datos General
 

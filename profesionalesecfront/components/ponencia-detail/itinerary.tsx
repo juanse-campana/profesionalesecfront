@@ -8,9 +8,11 @@ import SpeakerCard from "@/components/speaker-card"
 interface ItineraryProps {
     ponencia: any
     loading: boolean
+    resourceLabel?: string
+    speakerBasePath?: string
 }
 
-export default function EventItinerary({ ponencia, loading }: ItineraryProps) {
+export default function EventItinerary({ ponencia, loading, resourceLabel = "CONVERSATORIO", speakerBasePath = "/conversatorios" }: ItineraryProps) {
     const [activeAccordion, setActiveAccordion] = useState<string | null>(null)
 
     if (loading || !ponencia || !ponencia.dias?.length) return null
@@ -28,7 +30,7 @@ export default function EventItinerary({ ponencia, loading }: ItineraryProps) {
                         Cronograma Detallado
                     </h2>
                     <h3 className="text-4xl md:text-6xl font-black text-black uppercase italic tracking-tighter">
-                        REVIVE EL CONVERSATORIO
+                        {`REVIVE EL ${resourceLabel}`}
                     </h3>
                 </div>
 
@@ -82,6 +84,7 @@ export default function EventItinerary({ ponencia, loading }: ItineraryProps) {
                                                         key={pon.id} 
                                                         ponente={pon} 
                                                         ponenciaId={ponencia.id} 
+                                                        basePath={speakerBasePath}
                                                     />
                                                 ))}
                                                 {(!dia.ponentes || dia.ponentes.length === 0) && (

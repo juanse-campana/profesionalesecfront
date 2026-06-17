@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { formatUrl } from "@/lib/utils"
 
 export default function EducacionPage() {
-  const { ponencias, loading, error } = usePonencias()
+  const { ponencias, loading, error } = usePonencias({ routePrefix: "/conversatorios", errorLabel: "conversatorios" })
 
   const now = new Date()
   const proximos = ponencias.filter(p => new Date(p.fecha_inicio) >= now)

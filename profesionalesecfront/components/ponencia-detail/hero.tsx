@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { ArrowLeft } from "lucide-react"
+import CertificateRequestDialog from "@/components/certificates/certificate-request-dialog"
 import Link from "next/link"
 import { UI_MESSAGES } from "@/constants/ponencias"
 
@@ -9,9 +10,12 @@ interface HeroProps {
     ponencia: any
     loading: boolean
     error: string
+    backHref?: string
+    backLabel?: string
+    resourceLabel?: string
 }
 
-export default function EventHero({ ponencia, loading, error }: HeroProps) {
+export default function EventHero({ ponencia, loading, error, backHref = "/conversatorios", backLabel = UI_MESSAGES.backToEducation, resourceLabel = "Conversatorio" }: HeroProps) {
     if (loading) {
         return (
             <section className="relative pt-24 pb-12 px-6 overflow-hidden bg-black">
@@ -52,11 +56,11 @@ export default function EventHero({ ponencia, loading, error }: HeroProps) {
                     className="mb-10"
                 >
                     <Link
-                        href="/conversatorios"
+                        href={backHref}
                         className="group inline-flex items-center gap-3 px-5 py-2.5 bg-slate-50 border border-slate-100 rounded-full text-slate-500 hover:bg-black hover:text-white hover:border-black transition-all shadow-sm hover:shadow-lg"
                     >
                         <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{UI_MESSAGES.backToEducation}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">{backLabel}</span>
                     </Link>
                 </motion.div>
 
@@ -68,9 +72,21 @@ export default function EventHero({ ponencia, loading, error }: HeroProps) {
                     <span className="inline-block px-2.5 py-1 bg-emerald-500/10 text-emerald-600 text-[8px] font-black rounded-lg mb-4 border border-emerald-500/10 uppercase tracking-[0.2em] leading-none">
                         {isFuturo ? "Próximo Evento" : "Evento Realizado"}
                     </span>
-                    <h1 className="text-4xl md:text-6xl font-black text-black mb-4 tracking-tighter leading-[0.95] uppercase italic">
-                        {ponencia.titulo}
-                    </h1>
+                    <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <h1 className="text-4xl md:text-6xl font-black text-black tracking-tighter leading-[0.95] uppercase italic">
+                            {ponencia.titulo}
+                        </h1>
+                        <CertificateRequestDialog
+                            scope="conversatorio"
+                            ponenciaId={Number(ponencia.id)}
+                            eventTitle={ponencia.titulo}
+                            eventDate={ponencia.fecha_inicio || null}
+                            defaultCost={Number(ponencia?.precio ?? 0)}
+                            triggerLabel="Obtener certificado"
+                            triggerClassName="bg-black text-white hover:bg-emerald-600"
+                            resourceLabel={resourceLabel}
+                        />
+                    </div>
                     <p className="text-base text-gray-500 leading-relaxed font-light max-w-2xl">
                         {ponencia.subtitulo || ponencia.descripcion}
                     </p>

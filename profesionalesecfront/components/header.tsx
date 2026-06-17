@@ -11,7 +11,7 @@ export default function Header() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const pathname = usePathname()
   const hideMobileMenu =
-    pathname.startsWith("/admin") || pathname.startsWith("/dashboard/profesional")
+    pathname.startsWith("/admin") || pathname.startsWith("/dashboard")
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token")
@@ -50,6 +50,7 @@ export default function Header() {
     { label: "Inicio", href: "/" },
     { label: "Profesionales", href: "/profesionales" },
     { label: "Educación", href: "/conversatorios" },
+    { label: "Cursos", href: "/cursos" },
     { label: "Contacto", href: "/contacto" },
   ]
 
@@ -58,6 +59,8 @@ export default function Header() {
       return { label: "Panel Admin", href: "/admin" }
     } else if (userRole === "profesional") {
       return { label: "Mi Dashboard", href: "/dashboard/profesional" }
+    } else if (userRole === "usuario") {
+      return { label: "Mi Dashboard", href: "/dashboard" }
     }
     return null
   }
@@ -142,7 +145,7 @@ export default function Header() {
                       href="/preinscripcion"
                       className="text-sm font-medium bg-white text-black px-5 py-2 rounded-full hover:bg-white/90 transition-all duration-300 shadow-lg hover:shadow-emerald-500/20 active:scale-95"
                     >
-                      Crear Perfil Profesional
+                      Crear cuenta
                     </Link>
                   </div>
                 </>
@@ -218,7 +221,7 @@ export default function Header() {
                       href="/preinscripcion"
                       className="w-full px-6 py-3 bg-white text-black rounded-full font-medium text-sm mt-4 active:scale-95 transition-transform text-center"
                     >
-                      Crear Perfil Profesional
+                      Crear cuenta
                     </Link>
                   </>
                 ) : (

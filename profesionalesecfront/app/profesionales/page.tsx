@@ -17,7 +17,7 @@ import {
 import { formatUrl } from "@/lib/utils"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api"
-const PAGE_SIZE = 12
+const PAGE_SIZE = 30
 
 type PageMeta = { totalItems: number; totalPages: number; currentPage: number }
 
@@ -497,8 +497,7 @@ function ProfessionalsPageInner() {
               ))}
             </div>
 
-            {meta.totalPages > 1 && (
-              <div className="mt-12 flex flex-col items-center justify-center gap-4">
+            <div className="mt-12 flex flex-col items-center justify-center gap-4">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handlePageChange(Math.max(1, page - 1))}
@@ -560,7 +559,6 @@ function ProfessionalsPageInner() {
                   Página {page} de {meta.totalPages}
                 </span>
               </div>
-            )}
           </div>
         ) : (
           !loading && (

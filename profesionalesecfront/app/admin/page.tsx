@@ -68,9 +68,9 @@ export default function AdminDashboard() {
 
   const statsCards = [
     {
-      title: "Conversatorios Activos",
+      title: "Eventos Educativos Activos",
       value: ponencias.filter((p) => p.estado === "publicada").length,
-      subtitle: `Total de ${ponencias.length} conversatorios`,
+      subtitle: `Total de ${ponencias.length} eventos educativos`,
       icon: Users,
       iconBg: "bg-blue-50",
       iconColor: "text-blue-600",

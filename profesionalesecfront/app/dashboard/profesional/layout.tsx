@@ -4,7 +4,6 @@ import { ReactNode, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import ProfesionalSidebar from "@/components/profesional/profesional-sidebar"
 import ProfesionalMobileNav from "@/components/profesional/profesional-mobile-nav"
-import Header from "@/components/header"
 import { ProfesionalProvider } from "@/context/profesional-context"
 
 type GuardState = "checking" | "allowed" | "blocked"
@@ -28,6 +27,7 @@ function parseRoleFromToken(token: string): { role: string | null; exp: number |
 
 function logout() {
   localStorage.removeItem("auth_token")
+  localStorage.removeItem("user_data")
   window.location.href = "/"
 }
 
@@ -102,7 +102,6 @@ export default function ProfesionalDashboardLayout({ children }: { children: Rea
   return (
     <ProfesionalProvider>
       <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-100 text-gray-900">
-        <Header />
         <ProfesionalSidebar
           expanded={sidebarExpanded}
           onToggle={() => setSidebarExpanded((prev) => !prev)}
@@ -114,8 +113,8 @@ export default function ProfesionalDashboardLayout({ children }: { children: Rea
             ["--profesional-sidebar-width" as string]: `${sidebarExpanded ? 312 : 70}px`,
           }}
         >
-          <main className="pt-20 pb-12 px-4 lg:px-8">
-            <div className="max-w-7xl mx-auto">
+          <main className="px-4 pb-12 pt-20 lg:px-8 lg:pt-8">
+            <div className="mx-auto max-w-7xl">
               {children}
             </div>
           </main>

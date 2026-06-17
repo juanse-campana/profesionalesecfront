@@ -88,6 +88,7 @@ interface FormData {
   confirmPassword: string
   phone: string
   profileImage: File | null
+  bannerImage: File | null
   profession: string // Stores ID as string
   specialty: string // Stores ID as string
   description: string
@@ -194,6 +195,7 @@ export default function ProfessionalForm({ isAdditionalProfile = false }: Profes
     confirmPassword: "",
     phone: "",
     profileImage: null,
+    bannerImage: null,
     profession: "",
     specialty: "",
     description: "",
@@ -254,6 +256,7 @@ export default function ProfessionalForm({ isAdditionalProfile = false }: Profes
   const [provinces, setProvinces] = useState<CatalogItem[]>([])
   const [cities, setCities] = useState<CatalogItem[]>([])
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null)
+  const [bannerImagePreview, setBannerImagePreview] = useState<string | null>(null)
 
   const copyTextToClipboard = async (value: string) => {
     if (navigator.clipboard?.writeText) {
@@ -594,16 +597,23 @@ export default function ProfessionalForm({ isAdditionalProfile = false }: Profes
     setTouched(prev => ({ ...prev, [name]: true }))
     validateField(name, file)
 
-    // Handle preview for profile image
-    if (name === "profileImage") {
+    // Handle preview for profile and banner image
+    if (name === "profileImage" || name === "bannerImage") {
       if (file) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          setProfileImagePreview(reader.result as string);
+          const result = reader.result as string
+          if (name === "profileImage") {
+            setProfileImagePreview(result)
+          } else {
+            setBannerImagePreview(result)
+          }
         };
         reader.readAsDataURL(file);
-      } else {
+      } else if (name === "profileImage") {
         setProfileImagePreview(null);
+      } else {
+        setBannerImagePreview(null);
       }
     }
 
@@ -852,6 +862,17 @@ export default function ProfessionalForm({ isAdditionalProfile = false }: Profes
           }
         }
 
+        let bannerUrl = ""
+        if (formData.bannerImage) {
+          try {
+            console.log("[v0] Uploading banner image to Cloudinary")
+            bannerUrl = await uploadToCloudinary(formData.bannerImage)
+            console.log("[v0] Banner image uploaded, URL:", bannerUrl)
+          } catch (uploadError) {
+            console.warn("Could not upload banner image:", uploadError)
+          }
+        }
+
         // Step 3: Upload payment proof after register check. Reuse previous upload URL for retries.
         let comprobanteUrl: string | null = comprobantePagoUrl
         if (isPriorityBankTransfer) {
@@ -890,6 +911,8 @@ export default function ProfessionalForm({ isAdditionalProfile = false }: Profes
           show_phone: formData.showPhone,
           show_email: formData.showEmail,
           foto_url: fotoUrl, // Include foto_url directly in creation request
+          banner_url: bannerUrl || undefined,
+          modalidad: formData.workMode || undefined,
           plan: plan || undefined,
           comprobante_pago_url: comprobanteUrl || undefined,
           payment_method: isPriorityPayPhone ? "payphone" : undefined,
@@ -1247,6 +1270,58 @@ export default function ProfessionalForm({ isAdditionalProfile = false }: Profes
         </div>
         {errors.profileImage && <p className="text-red-400 text-sm mt-3 font-medium animate-pulse">{errors.profileImage}</p>}
         <p className="text-[10px] text-gray-400 mt-4 text-center max-w-[200px]">Recomendado: Imagen cuadrada, formato JPG o PNG. Máx {PROFILE_IMAGE_MAX_SIZE_MB}MB.</p>
+      </div>
+
+      <div className="flex flex-col items-center mt-8 py-6 border-t border-gray-100">
+        <label className="block text-sm font-bold text-gray-700 mb-6 uppercase tracking-wider">Imagen de banner (opcional)</label>
+        <div className="w-full max-w-2xl">
+          <input
+            id="bannerImage"
+            type="file"
+            accept="image/png, image/jpeg, image/jpg, image/webp"
+            onChange={(e) => handleFileChange("bannerImage", e.target.files?.[0] || null)}
+            className="hidden"
+          />
+          <label
+            htmlFor="bannerImage"
+            className={`relative flex h-48 w-full cursor-pointer items-center justify-center overflow-hidden rounded-3xl border-2 border-dashed transition-all duration-300 ${
+              errors.bannerImage
+                ? "border-red-400 bg-red-50"
+                : bannerImagePreview
+                  ? "border-primary shadow-xl"
+                  : "border-gray-300 hover:border-primary hover:bg-gray-50 bg-white"
+            }`}
+          >
+            {bannerImagePreview ? (
+              <img src={bannerImagePreview} alt="Preview banner" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex flex-col items-center text-center p-4">
+                <Upload className="size-10 text-gray-400 group-hover:text-primary transition-colors mb-2" />
+                <span className="text-sm font-medium text-gray-500 group-hover:text-primary">Click para subir tu banner</span>
+                <span className="text-xs text-gray-400 mt-2">Ideal para destacar tu perfil público</span>
+              </div>
+            )}
+            <div className={`absolute inset-0 bg-black/35 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity ${bannerImagePreview ? "visible" : "invisible"}`}>
+              <Upload className="size-8 text-white" />
+            </div>
+          </label>
+
+          {bannerImagePreview && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                handleFileChange("bannerImage", null)
+              }}
+              className="mt-3 inline-flex items-center rounded-full bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-lg transition-colors hover:bg-red-600"
+            >
+              Quitar banner
+            </button>
+          )}
+
+          {errors.bannerImage && <p className="text-red-400 text-sm mt-3 font-medium animate-pulse">{errors.bannerImage}</p>}
+          <p className="text-xs text-gray-400 mt-4 text-center">Formato recomendado horizontal, JPG o PNG. Máx {PROFILE_IMAGE_MAX_SIZE_MB}MB.</p>
+        </div>
       </div>
     </div>
   )

@@ -55,6 +55,11 @@ export default function NuevoConversatorioPage() {
       <ConversatorioForm
         profesiones={profesiones}
         provincias={provincias}
+        routePrefix="/conversatorios"
+        uploadFolder="conversatorios"
+        redirectPath="/admin/conversatorios"
+        resourceLabel="Conversatorio"
+        resourceLabelPlural="Conversatorios"
       />
     </div>
   )

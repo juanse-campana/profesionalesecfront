@@ -33,6 +33,8 @@ export default function ConfiguracionPage() {
     descripcion: "",
     tarifa: "",
     permitir_reagendar: true,
+    banner_url: "",
+    modalidad: "",
   })
   const [passwordForm, setPasswordForm] = useState({
     contrasena_actual: "",
@@ -42,10 +44,14 @@ export default function ConfiguracionPage() {
   const [savingPersonal, setSavingPersonal] = useState(false)
   const [uploadingProfileImage, setUploadingProfileImage] = useState(false)
   const [savingPerfilProfesional, setSavingPerfilProfesional] = useState(false)
+  const [uploadingBannerImage, setUploadingBannerImage] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null)
   const [profileImagePreview, setProfileImagePreview] = useState<string>("")
   const [profileImageError, setProfileImageError] = useState<string>("")
+  const [bannerImageFile, setBannerImageFile] = useState<File | null>(null)
+  const [bannerImagePreview, setBannerImagePreview] = useState<string>("")
+  const [bannerImageError, setBannerImageError] = useState<string>("")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [deleting, setDeleting] = useState(false)
@@ -68,10 +74,21 @@ export default function ConfiguracionPage() {
   }, [profileImageFile])
 
   useEffect(() => {
+    if (!bannerImageFile) return
+    const objectUrl = URL.createObjectURL(bannerImageFile)
+    setBannerImagePreview(objectUrl)
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }, [bannerImageFile])
+
+  useEffect(() => {
     setPerfilProfesionalForm({
       descripcion: perfil?.descripcion || "",
       tarifa: perfil?.tarifa != null ? String(perfil.tarifa) : "",
       permitir_reagendar: perfil?.permitir_reagendar ?? true,
+      banner_url: perfil?.banner_url || "",
+      modalidad: perfil?.modalidad || "",
     })
   }, [perfil])
 
@@ -121,6 +138,33 @@ export default function ConfiguracionPage() {
     }
   }
 
+  const handleBannerImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    setBannerImageError("")
+
+    if (!file) {
+      setBannerImageFile(null)
+      setBannerImagePreview("")
+      return
+    }
+
+    if (!PROFILE_IMAGE_ACCEPTED_TYPES.includes(file.type)) {
+      setBannerImageFile(null)
+      setBannerImagePreview("")
+      setBannerImageError("Formato inválido. Usa JPG, PNG o WEBP.")
+      return
+    }
+
+    if (file.size > PROFILE_IMAGE_MAX_SIZE_BYTES) {
+      setBannerImageFile(null)
+      setBannerImagePreview("")
+      setBannerImageError(`La imagen supera el límite de ${PROFILE_IMAGE_MAX_SIZE_MB}MB.`)
+      return
+    }
+
+    setBannerImageFile(file)
+  }
+
   const handleProfileImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     setProfileImageError("")
@@ -152,6 +196,8 @@ export default function ConfiguracionPage() {
     e.preventDefault()
     if (!token || !perfil?.id) return
 
+    setBannerImageError("")
+
     const tarifaNormalizada = perfilProfesionalForm.tarifa.trim()
     const tarifaNumero = tarifaNormalizada === "" ? undefined : Number(tarifaNormalizada)
     const tarifa = Number.isFinite(tarifaNumero) ? tarifaNumero : undefined
@@ -163,20 +209,41 @@ export default function ConfiguracionPage() {
 
     try {
       setSavingPerfilProfesional(true)
+
+      let bannerUrl = perfilProfesionalForm.banner_url.trim()
+      if (bannerImageFile) {
+        setUploadingBannerImage(true)
+        const uploaded = await multimediaApi.subir(bannerImageFile, "profile-banners", token)
+        const uploadedUrl = uploaded?.url
+
+        if (!uploadedUrl) {
+          throw new Error("No se pudo obtener la URL del banner subido")
+        }
+
+        bannerUrl = uploadedUrl
+      }
+
       await profesionalApi.actualizarPerfil(
         {
           id: perfil.id,
           descripcion: perfilProfesionalForm.descripcion,
           tarifa,
           permitir_reagendar: perfilProfesionalForm.permitir_reagendar,
+          banner_url: bannerUrl,
+          modalidad: perfilProfesionalForm.modalidad || undefined,
         },
         token,
       )
+      setBannerImageFile(null)
+      setBannerImagePreview("")
       toast({ title: "Perfil profesional actualizado" })
       await loadData()
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "No se pudo actualizar", variant: "destructive" })
+      const message = error.message || "No se pudo actualizar"
+      setBannerImageError(message)
+      toast({ title: "Error", description: message, variant: "destructive" })
     } finally {
+      setUploadingBannerImage(false)
       setSavingPerfilProfesional(false)
     }
   }
@@ -290,12 +357,39 @@ export default function ConfiguracionPage() {
               <Label htmlFor="tarifa">Tarifa</Label>
               <Input id="tarifa" type="number" min="0" step="0.01" value={perfilProfesionalForm.tarifa} onChange={(e) => setPerfilProfesionalForm((prev) => ({ ...prev, tarifa: e.target.value }))} />
             </div>
+            <div>
+              <Label htmlFor="modalidad">Modalidad de trabajo</Label>
+              <select id="modalidad" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={perfilProfesionalForm.modalidad} onChange={(e) => setPerfilProfesionalForm((prev) => ({ ...prev, modalidad: e.target.value }))}>
+                <option value="">Selecciona una modalidad</option>
+                <option value="Presencial">Presencial</option>
+                <option value="Virtual">Virtual</option>
+                <option value="Ambas modalidades">Híbrido</option>
+              </select>
+            </div>
             <div className="flex items-end gap-2">
               <input id="permitir_reagendar" type="checkbox" checked={perfilProfesionalForm.permitir_reagendar} onChange={(e) => setPerfilProfesionalForm((prev) => ({ ...prev, permitir_reagendar: e.target.checked }))} />
               <Label htmlFor="permitir_reagendar">Permitir reagendamiento</Label>
             </div>
             <div className="md:col-span-2">
-              <Button type="submit" disabled={savingPerfilProfesional || !perfil?.id}>{savingPerfilProfesional ? "Guardando..." : "Guardar perfil profesional"}</Button>
+              <Label htmlFor="banner">Banner del perfil</Label>
+              <div className="mt-2 flex flex-col gap-3">
+                <div className="overflow-hidden rounded-2xl border bg-muted/20">
+                  <img
+                    src={bannerImagePreview || perfilProfesionalForm.banner_url || "/placeholder.svg?height=240&width=1200"}
+                    alt="Vista previa banner del perfil"
+                    className="h-40 w-full object-cover"
+                  />
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <p>Sube una imagen horizontal para destacar tu perfil público.</p>
+                  <p>Tamaño máximo: {PROFILE_IMAGE_MAX_SIZE_MB}MB.</p>
+                </div>
+                <Input id="banner" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleBannerImageChange} />
+                {bannerImageError ? <p className="text-sm text-red-600">{bannerImageError}</p> : null}
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <Button type="submit" disabled={savingPerfilProfesional || uploadingBannerImage || !perfil?.id}>{uploadingBannerImage ? "Subiendo banner..." : savingPerfilProfesional ? "Guardando..." : "Guardar perfil profesional"}</Button>
             </div>
           </form>
         </CardContent>

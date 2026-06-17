@@ -7,9 +7,10 @@ import { formatUrl } from "@/lib/utils"
 interface SpeakerCardProps {
   ponente: any
   ponenciaId?: number | string
+  basePath?: string
 }
 
-export default function SpeakerCard({ ponente, ponenciaId }: SpeakerCardProps) {
+export default function SpeakerCard({ ponente, ponenciaId, basePath = "/conversatorios" }: SpeakerCardProps) {
   // Extract data based on registered user (usuario/Usuario) or guest speaker fields
   const userObj = ponente.usuario || ponente.Usuario
   const nombre = userObj?.nombre || ponente.nombre_ponente || "Ponente Invitado"
@@ -18,7 +19,7 @@ export default function SpeakerCard({ ponente, ponenciaId }: SpeakerCardProps) {
 
   // Navigation target - Prefer explicit prop over nested data
   const finalPonenciaId = ponenciaId || ponente.ponencia_id
-  const profileUrl = ponente.slug && finalPonenciaId ? `/conversatorios/${finalPonenciaId}/ponente/${ponente.slug}` : "#"
+  const profileUrl = ponente.slug && finalPonenciaId ? `${basePath}/${finalPonenciaId}/ponente/${ponente.slug}` : "#"
 
   return (
     <Link 

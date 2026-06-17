@@ -4,7 +4,6 @@ import { ReactNode, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import AdminSidebar from "@/components/admin/admin-sidebar"
 import AdminMobileNav from "@/components/admin/admin-mobile-nav"
-import Header from "@/components/header"
 
 type GuardState = "checking" | "allowed" | "blocked"
 
@@ -27,6 +26,7 @@ function parseRoleFromToken(token: string): { role: string | null; exp: number |
 
 function logout() {
   localStorage.removeItem("auth_token")
+  localStorage.removeItem("user_data")
   window.location.href = "/"
 }
 
@@ -52,7 +52,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       return
     }
 
-    // If token is already expired, kick out immediately
     if (exp && exp * 1000 < Date.now()) {
       logout()
       return
@@ -61,7 +60,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     setGuardState("allowed")
   }, [router])
 
-  // Periodically check if the token has expired
   useEffect(() => {
     if (guardState !== "allowed") return
 
@@ -83,7 +81,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     return () => clearInterval(interval)
   }, [guardState])
 
-  // Listen for storage changes (e.g., token removed in another tab)
   useEffect(() => {
     if (guardState !== "allowed") return
 
@@ -103,7 +100,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-900">
-      <Header />
       <AdminSidebar
         expanded={sidebarExpanded}
         onToggle={() => setSidebarExpanded((prev) => !prev)}
@@ -115,8 +111,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           ["--admin-sidebar-width" as string]: `${sidebarExpanded ? 312 : 70}px`,
         }}
       >
-        <main className="pt-20 pb-12 px-4 lg:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
+        <main className="px-4 pb-12 pt-20 lg:px-6 lg:px-8 lg:pt-8">
+          <div className="mx-auto max-w-7xl">
             {children}
           </div>
         </main>
